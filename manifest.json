@@ -1,0 +1,16 @@
+{
+  "name": "C3 file browser",
+  "description": "Application to browse files stored in C3 system",
+  "version": "0.1",
+  "manifest_version": 2,
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
+  "permissions": [
+        "http://*/"
+  ],
+  "app": {
+    "launch": {
+      "local_path": "window.html"
+    }
+  },
+  "icons": { "16": "calculator-16.png", "128": "calculator-128.png" }
+}
