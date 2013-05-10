@@ -12,6 +12,8 @@ var Terminal = new Class({
     c3Host: null,
     c3Domain: null,
     c3Key: null,
+    c3CurrentDir: "/",
+    c3CurrentDirName: "/",
 
     initialize: function(container) {
         this.terminal = container;
@@ -101,7 +103,7 @@ var Terminal = new Class({
 
         if (event.code == 38) { // Up arrow
             event.preventDefault();
-            dbg(this.commandHistoryIndex + ', ' + this.commandHistory.length);
+            //dbg(this.commandHistoryIndex + ', ' + this.commandHistory.length);
             if (this.commandHistoryIndex > 0) {
                 this.commandHistoryIndex--;
                 this.currentCommand.set('html', this.commandHistory[this.commandHistoryIndex]);
@@ -111,7 +113,7 @@ var Terminal = new Class({
 
         if (event.code == 40) { // Down arrow
             event.preventDefault();
-            dbg(this.commandHistoryIndex + ', ' + this.commandHistory.length);
+            //dbg(this.commandHistoryIndex + ', ' + this.commandHistory.length);
             if (this.commandHistoryIndex < this.commandHistory.length) {
                 this.commandHistoryIndex++;
                 this.currentCommand.set('html', this.commandHistory[this.commandHistoryIndex]);
@@ -169,12 +171,20 @@ var Terminal = new Class({
             this.currentPrompt.getElement('.cursor').destroy();
 
         this.currentPrompt = new Element('div');
-        this.currentPrompt.grab(new Element('span').addClass('prompt').set('text', '>'));
+        this.currentPrompt.grab(new Element('span').addClass('prompt').set('text', this.promptString()));
         this.currentCommand = new Element('span').addClass('command');
         this.currentPrompt.grab(this.currentCommand);
         this.currentPrompt.grab(new Element('span').addClass('cursor'));
         this.terminal.grab(this.currentPrompt);
         $(window).scrollTo(0, this.currentPrompt.getPosition().y);
+    },
+
+    promptString: function(){
+        if(this.c3Host == null){
+            return "::";
+        }else{
+            return this.c3Host + "::" + this.c3CurrentDirName + ":";
+        }
     },
 
     // Executes a command
@@ -199,22 +209,7 @@ var Terminal = new Class({
     },
 
     executeCommand: function(cliCommand, context, onComplete) {
-
         cliExecuteCommand(cliCommand, context, onComplete)
-//
-//        var request = new Request.HTML().get('/ws/cli?command=' + encodeURIComponent(cliCommand));
-//        request.addEvent('complete', function() {
-//
-//            var response = null;
-//
-//            if (request.isSuccess()) {
-//                response = request.response.text;
-//            }
-//
-//            onComplete(context, response)
-//        }.bind(this));
-//
-//        request.send();
     },
 
     storeCommandHistory: function() {

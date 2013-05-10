@@ -12,5 +12,5 @@
       "local_path": "window.html"
     }
   },
-  "icons": { "16": "calculator-16.png", "128": "calculator-128.png" }
+  "icons": { "16": "img/terminal-16.png", "128": "img/terminal-128.png" }
 }
