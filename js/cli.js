@@ -153,7 +153,11 @@ function cliCommandConnect(args, context, onComplete){
                }
             });
 
-            onComplete(context, 'Connected to ' + host + ' using domain ' + domain + ", api version " + version);
+            if(context.c3Domain != null){
+                onComplete(context, 'Connected to ' + host + ' using domain ' + domain + ', api version ' + version);
+            }else{
+                onComplete(context, 'Connected to ' + host + ', api version ' + version);
+            }
         },
         function(error){
             context.c3Host = null;
@@ -611,6 +615,23 @@ function cliMdItemToString(item){
 function callC3Api(context, uri, method, headers, callback, failureCallback, data){
 
     headers['Accept'] = 'application/json';
+
+    if(context.c3Domain != null){
+        headers['x-c3-domain'] = context.c3Domain
+    }
+
+    if(context.c3Key != null){
+        var date = (new Date()).toUTCString();
+        headers['x-c3-date'] = date;
+
+        var hashBase = uri.split("?")[0] + date + context.c3Domain
+
+        //console.log(hashBase);
+        headers['x-c3-sign'] = CryptoJS.HmacSHA256(hashBase, context.c3Key).toString(CryptoJS.enc.Hex);
+
+        //console.log(headers['x-c3-sign'])
+    }
+
 
     var request = new Request.JSON({
         url: 'http://' + context.c3Host + uri,
