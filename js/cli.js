@@ -50,6 +50,12 @@ cliCommands['pwd'] = {
     description: 'Displays current working directory'
 };
 
+cliCommands['file'] ={
+    func: cliFile,
+    name: 'file',
+    description: 'Displays information about file'
+}
+
 var offlineCommands = ['help', 'connect'];
 
 function cliExecuteCommand(command, context, onComplete){
@@ -134,9 +140,7 @@ function cliCommandDisconnect(args, context, onComplete){
     onComplete(context, "Disconnected")
 }
 
-function cliCd(args, context, onComplete){
-
-    function evaluateNewPath(context, args){
+function cliEvaluatePath(context, args){
 
         if(args.length == 0){
             return context.c3CurrentDir;
@@ -144,7 +148,8 @@ function cliCd(args, context, onComplete){
 
         var path = args[0];
 
-        if(path[0] != '/'){
+
+        if(path.length == 0 || path[0] != '/'){
             path = context.c3CurrentDir + path;
         }
 
@@ -179,7 +184,9 @@ function cliCd(args, context, onComplete){
         return finalPath;
     }
 
-    var newPath = evaluateNewPath(context, args);
+function cliCd(args, context, onComplete){
+
+    var newPath = cliEvaluatePath(context, args);
 
     checkIfDirectoryExists(context, newPath, onComplete, function(){
         context.c3CurrentDir = newPath;
@@ -334,10 +341,15 @@ function buildFileTable(items, fields, format){
 }
 
 function cliShowFile(args, context, onComplete){
-    chrome.app.window.create({
-        'url': 'http://node0.c3.ifunsoftware.com/rest/fs/65/files/%D0%91%D0%B5%D0%B7%D1%8B%D0%BC%D1%8F%D0%BD%D0%BD%D1%8B%D0%B9.png',
+
+    var path = cliEvaluatePath(context, args);
+
+    chrome.windows.create({
+        'url': 'http://' + context.c3Host + '/rest/fs' + path,
         'type': 'popup'
-    }, function(window){})
+    }, function(window){
+        onComplete(context, "");
+    })
 }
 
 function cliCommandHelp(args, context, onComplete){
@@ -353,6 +365,94 @@ function cliCommandHelp(args, context, onComplete){
 
 function cliCommandNotFound(args, context, onComplete){
     onComplete(context, 'Command not found, args ' + args)
+}
+
+function cliFile(args, context, onComplete){
+
+    var path = cliEvaluatePath(context, args);
+
+    callC3Api(context, '/rest/fs' + path + "?metadata", 'get', {},
+        function(response){
+
+
+            console.log(response);
+
+            var resource = response['resource'];
+
+            var output = [];
+
+            output.push(path + ' information:');
+            output.push('\tAddress: ' + resource['address']);
+            output.push('\tCreated: ' + resource['createDate']);
+            output.push('\tKeeps versions: ' + resource['trackVersions']);
+
+            output.push('\tUser metadata:');
+            cliProcessCollection(resource['metadata']['element'], function(item){
+                output.push(cliMdItemToString(item))
+            });
+
+
+            output.push('\tSystem metadata:');
+            cliProcessCollection(resource['systemMetadata']['element'], function(item){
+               output.push(cliMdItemToString(item));
+            });
+
+            output.push('\tTransient metadata:');
+            var sysMd = resource['transientMetadata']['element'];
+            cliProcessCollection(sysMd, function(item){
+                output.push(cliMdItemToString(item));
+            });
+
+
+            output.push('\tVersions:');
+
+            cliProcessCollection(resource['versions']['version'], function(version){
+                output.push(String.form('\t\t %s %7s %s', [version['@date'], bytesToSize(version['@length']), version['@hash']]));
+            });
+
+            var result = '';
+
+            output.forEach(function(item){
+               result = result + item + "\n";
+            });
+
+            onComplete(context, result);
+        },
+        function(error){
+            onComplete(context, 'Failed to execute call, error is ' + error)
+        }
+    );
+}
+
+function cliProcessCollection(collection, func){
+
+    function cliCompareMetadata(a,b) {
+
+        var keyA = a['@key'];
+        var keyB = b['@key'];
+
+        if (keyA < keyB)
+            return -1;
+        if (keyA > keyB)
+            return 1;
+        return 0;
+    }
+
+    if(Array.isArray(collection)){
+        collection.sort(cliCompareMetadata).forEach(function(item){
+            func(item);
+        });
+    }else{
+        if(collection){
+            func(collection)
+        }
+    }
+}
+
+
+
+function cliMdItemToString(item){
+    return "\t\t" + item['@key'] + ': ' + item['value'];
 }
 
 function callC3Api(context, uri, method, headers, callback, failureCallback){
