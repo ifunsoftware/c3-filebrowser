@@ -107,7 +107,6 @@ function cliCommandConnect(args, context, onComplete){
 
     callC3Api(context, '/rest/status', 'get', {},
         function(response){
-            console.log(response);
 
             var modules = response['status']['modules']['module'];
 
@@ -373,9 +372,6 @@ function cliFile(args, context, onComplete){
 
     callC3Api(context, '/rest/fs' + path + "?metadata", 'get', {},
         function(response){
-
-
-            console.log(response);
 
             var resource = response['resource'];
 
