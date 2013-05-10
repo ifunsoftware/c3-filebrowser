@@ -20,24 +20,9 @@ var Terminal = new Class({
 
         this.loadCommandHistory();
 
-        this.out('Type hostname to connect to')
-        this.prompt()
-//
-//        this.executeCommand('show system summary', this, function(console, response){
-//
-//            if(response == null){
-//                console.out('Failed to establish connection to server')
-//            }else{
-//                console.out('Welcome to C3 management console');
-//
-//                console.out(response);
-//
-//                console.out('\nType \'help\' for a list of available commands.');
-//                console.out('&nbsp;');
-//                console.prompt()
-//            }
-//        });
-
+        this.out('Welcome to C3 file browser');
+        this.out('Type help to get list of available commands');
+        this.prompt();
 
         this.path = '.';
 

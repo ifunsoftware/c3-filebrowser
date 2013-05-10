@@ -8,12 +8,47 @@
 
 var cliCommands = {};
 
-cliCommands['help'] = cliCommandHelp;
-cliCommands['connect'] = cliCommandConnect;
-cliCommands['ls'] = cliCommandLs;
-cliCommands['show'] = cliShowFile;
-cliCommands['cd'] = cliCd;
-cliCommands['pwd'] = cliPwd;
+cliCommands['help'] = {
+    func: cliCommandHelp,
+    name: 'help',
+    description: 'Displays help message'
+};
+
+cliCommands['connect'] = {
+    func: cliCommandConnect,
+    name: 'connect',
+    description: 'Connects to the c3 system'
+};
+
+cliCommands['disconnect'] = {
+    func: cliCommandDisconnect,
+    name: 'disconnect',
+    description: 'Disconnects from the c3 system'
+};
+
+cliCommands['ls'] = {
+    func: cliCommandLs,
+    name: 'ls',
+    description: 'Lists files in the directory'
+};
+
+cliCommands['show'] = {
+    func: cliShowFile,
+    name: 'show',
+    description: 'Opens file\'s content in the new window [DOES NOT WORK]'
+};
+
+cliCommands['cd'] = {
+    func: cliCd,
+    name: 'cd',
+    description: 'Changes current working directory'
+};
+
+cliCommands['pwd'] = {
+    func: cliPwd,
+    name: 'pwd',
+    description: 'Displays current working directory'
+};
 
 var offlineCommands = ['help', 'connect'];
 
@@ -31,7 +66,7 @@ function cliExecuteCommand(command, context, onComplete){
         }
     }
 
-    var cliFunc = cliFindCommand(commandName);
+    var cliFunc = cliFindCommand(commandName).func;
 
     cliFunc(commandArgs, context, onComplete);
 }
@@ -45,6 +80,17 @@ function cliFindCommand(name){
 }
 
 function cliCommandConnect(args, context, onComplete){
+
+    if(context.host != null){
+        onComplete(context, "Client is already connected, please disconnect first");
+        return;
+    }
+
+    if(args.length == 0){
+        onComplete(context, "Host argument required.\n Example: connect localhost:7373")
+        return;
+    }
+
     var host = args[0];
     var domain = args[1];
     var key = args[2];
@@ -53,7 +99,39 @@ function cliCommandConnect(args, context, onComplete){
     context.c3Domain = domain;
     context.c3Key = key;
 
-    onComplete(context, 'Connected to ' + host + ' using domain ' + domain)
+    callC3Api(context, '/rest/status', 'get', {},
+        function(response){
+            console.log(response);
+
+            var modules = response['status']['modules']['module'];
+
+            var version = null;
+
+            modules.forEach(function(module){
+               if(module['name'] == 'org.aphreet.c3.platform.access.rest'){
+                   version = module['version'];
+               }
+            });
+
+            onComplete(context, 'Connected to ' + host + ' using domain ' + domain + ", api version " + version);
+        },
+        function(error){
+            context.c3Host = null;
+            context.c3Domain = null;
+            context.c3Key = null;
+            onComplete(context, 'Failed to connect to host ' + host + ', error is ' + error);
+        }
+    );
+}
+
+function cliCommandDisconnect(args, context, onComplete){
+    context.c3Host = null;
+    context.c3Domain = null;
+    context.c3Key = null;
+    context.c3CurrentDir = "/";
+    context.c3CurrentDirName = "/";
+
+    onComplete(context, "Disconnected")
 }
 
 function cliCd(args, context, onComplete){
@@ -61,7 +139,7 @@ function cliCd(args, context, onComplete){
     function evaluateNewPath(context, args){
 
         if(args.length == 0){
-            return ".";
+            return context.c3CurrentDir;
         }
 
         var path = args[0];
@@ -263,7 +341,14 @@ function cliShowFile(args, context, onComplete){
 }
 
 function cliCommandHelp(args, context, onComplete){
-    onComplete(context, 'This is help output')
+
+    var result = 'Available commands: \n';
+
+    Object.keys(cliCommands).sort().forEach(function(item){
+        result = result + '\t' + cliCommands[item].name + ": " + cliCommands[item].description + "\n";
+    });
+
+    onComplete(context, result)
 }
 
 function cliCommandNotFound(args, context, onComplete){
