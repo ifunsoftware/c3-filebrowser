@@ -35,7 +35,7 @@ cliCommands['ls'] = {
 cliCommands['show'] = {
     func: cliShowFile,
     name: 'show',
-    description: 'Opens file\'s content in the new window [DOES NOT WORK]'
+    description: 'Opens file\'s content in the new window'
 };
 
 cliCommands['cd'] = {
@@ -50,11 +50,33 @@ cliCommands['pwd'] = {
     description: 'Displays current working directory'
 };
 
-cliCommands['file'] ={
+cliCommands['file'] = {
     func: cliFile,
     name: 'file',
     description: 'Displays information about file'
+};
+
+cliCommands['mkdir'] = {
+    func: cliMkDir,
+    name: 'mkdir',
+    description: 'Creates new directory'
+};
+
+cliCommands['setmd'] = {
+    func: cliSetMd,
+    name: 'setmd',
+    description: 'Sets metadata pair on file'
+};
+
+cliCommands['rmmd'] = {
+    func: cliRmMd,
+    name: 'rmmd',
+    description: 'Removes metadata from file'
 }
+
+var defaultCommand = {
+    func: cliCommandNotFound
+};
 
 var offlineCommands = ['help', 'connect'];
 
@@ -78,10 +100,11 @@ function cliExecuteCommand(command, context, onComplete){
 }
 
 function cliFindCommand(name){
+
     if(name in cliCommands){
         return cliCommands[name];
     }else{
-        return cliCommandNotFound;
+        return defaultCommand;
     }
 }
 
@@ -187,7 +210,7 @@ function cliCd(args, context, onComplete){
 
     var newPath = cliEvaluatePath(context, args);
 
-    checkIfDirectoryExists(context, newPath, onComplete, function(){
+    cliCheckIfDirectoryExists(context, newPath, onComplete, function(address){
         context.c3CurrentDir = newPath;
 
         var components = newPath.split("/").filter(function(item){
@@ -270,7 +293,7 @@ function cliCommandLs(args, context, onComplete){
         }
     }
 
-    checkIfDirectoryExists(context, dir, onComplete, function(){
+    cliCheckIfDirectoryExists(context, dir, onComplete, function(address){
 
         callC3Api(context, '/rest/fs' + dir, 'get', headers, function(response){
 
@@ -298,8 +321,76 @@ function cliCommandLs(args, context, onComplete){
     });
 }
 
-function checkIfDirectoryExists(context, path, onComplete, continuation){
+function cliMkDir(args, context, onComplete){
+
+    var path = cliEvaluatePath(context, args);
+
+    callC3Api(context, '/rest/fs' + path, 'post', {'x-c3-nodetype': 'directory'},
+        function(response){
+            onComplete(context, '');
+        },
+        function(error){
+            onComplete(context, 'Failed to create directory, error: ' + error)
+        }
+    );
+}
+
+function cliSetMd(args, context, onComplete){
+
+    if(args.length < 3){
+       onComplete(context, 'Not enough arguments');
+       return;
+    }
+
+    var path = cliEvaluatePath(context, args);
+
+    var key = args[1];
+    var value = args.slice(2).join(' ');
+
+    callC3Api(context, '/rest/fs' + path, 'put', {'x-c3-metadata': key + ':' + Base64.encode(value)},
+        function(response){
+            onComplete(context, '');
+        },
+        function(error){
+            onComplete(context, 'Failed to set metadata, error: ' + error)
+        }
+    );
+}
+
+function cliRmMd(args, context, onComplete){
+    if(args.length < 2){
+        onComplete(context, 'Not enough arguments');
+        return;
+    }
+
+    var path = cliEvaluatePath(context, args);
+
+    var key = args[1];
+
+    callC3Api(context, '/rest/fs' + path, 'put', {'x-c3-metadata-delete': key},
+        function(response){
+            onComplete(context, '');
+        },
+        function(error){
+            onComplete(context, 'Failed to set metadata, error: ' + error)
+        }
+    );
+
+}
+
+function cliCheckIfDirectoryExists(context, path, onComplete, continuation){
+    cliCheckIfExists(context, path, true, onComplete, continuation)
+}
+
+function cliCheckIfFileExists(context, path, onComplete, continuation){
+    cliCheckIfExists(context, path, false, onComplete, continuation)
+}
+
+function cliCheckIfExists(context, path, directoryRequired, onComplete, continuation){
     callC3Api(context, '/rest/fs' + path + '?metadata', 'get', {}, function(response){
+
+        var address = response['resource']['address']
+
         var sysmd = response['resource']['systemMetadata']['element'];
 
         var isDirectory = false;
@@ -312,15 +403,22 @@ function checkIfDirectoryExists(context, path, onComplete, continuation){
             }
         });
 
-        if(!isDirectory){
-            onComplete(context, "Specified path is not a directory")
+        if(isDirectory ^ directoryRequired){
+
+            if(directoryRequired){
+                onComplete(context, "Specified path is not a directory")
+            }else{
+                onComplete(context, "Specified path is a directory")
+            }
         }else{
-            continuation();
+            continuation(address)
         }
     }, function(code){
         onComplete(context, 'Failed to execute call, error code is ' + code)
     });
 }
+
+
 
 function buildFileTable(items, fields, format){
     var result = "";
@@ -343,12 +441,25 @@ function cliShowFile(args, context, onComplete){
 
     var path = cliEvaluatePath(context, args);
 
-    chrome.windows.create({
-        'url': 'http://' + context.c3Host + '/rest/fs' + path,
-        'type': 'popup'
-    }, function(window){
-        onComplete(context, "");
-    })
+    cliCheckIfFileExists(context, path, onComplete, function(address){
+        callC3Api(context, '/rest/once/' + address, 'post', {},
+            function(response){
+                chrome.windows.create({
+                    'url': 'http://' + context.c3Host + '/rest' + response['uri'],
+                    'type': 'popup'
+                }, function(window){
+                    onComplete(context, "");
+                });
+
+            },
+            function(error){
+                onComplete(context, "Failed to execute request, error: " + error)
+            }
+        );
+    });
+
+
+
 }
 
 function cliCommandHelp(args, context, onComplete){
@@ -459,13 +570,13 @@ function callC3Api(context, uri, method, headers, callback, failureCallback){
         url: 'http://' + context.c3Host + uri,
         method: method,
         headers: headers,
+        emulation: false,
         onSuccess: function(responseJSON, responseText){
 
             if(responseJSON != null){
                 var response = responseJSON['p:response'];
 
                 if(response["info"]["status"] != "OK"){
-                    console.log(responseText);
                     failureCallback("Response status is not ok");
                 }else{
                     callback(response)
@@ -476,7 +587,15 @@ function callC3Api(context, uri, method, headers, callback, failureCallback){
 
         },
         onFailure: function(xhr){
-            failureCallback(xhr.status)
+            var json = JSON.decode(xhr.responseText)
+
+            var message = json['p:response']['error']['message']
+
+            if(message){
+                failureCallback(message)
+            }else{
+                failureCallback(xhr.status)
+            }
         }
     });
 
