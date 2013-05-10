@@ -72,6 +72,18 @@ cliCommands['rmmd'] = {
     func: cliRmMd,
     name: 'rmmd',
     description: 'Removes metadata from file'
+};
+
+cliCommands['rm'] = {
+    func: cliRm,
+    name: 'rm',
+    description: 'Deletes file'
+};
+
+cliCommands['mv'] = {
+    func: cliMv,
+    name: 'mv',
+    description: 'Moves or renames file'
 }
 
 var defaultCommand = {
@@ -414,7 +426,7 @@ function cliCheckIfExists(context, path, directoryRequired, onComplete, continua
             continuation(address)
         }
     }, function(code){
-        onComplete(context, 'Failed to execute call, error code is ' + code)
+        onComplete(context, 'Failed to execute call, error: ' + code)
     });
 }
 
@@ -448,17 +460,51 @@ function cliShowFile(args, context, onComplete){
                     'url': 'http://' + context.c3Host + '/rest' + response['uri'],
                     'type': 'popup'
                 }, function(window){
-                    onComplete(context, "");
+                    onComplete(context, '');
                 });
 
             },
             function(error){
-                onComplete(context, "Failed to execute request, error: " + error)
+                onComplete(context, 'Failed to execute request, error: ' + error)
             }
         );
     });
+}
 
+function cliRm(args, context, onComplete){
 
+    var file = cliEvaluatePath(context, args);
+
+    callC3Api(context, '/rest/fs' + file, 'delete', {},
+        function(response){
+            onComplete(context, '')
+        },
+        function(error){
+            onComplete(context, 'Failed to execute command, error: ' + error)
+        }
+    );
+}
+
+function cliMv(args, context, onComplete){
+
+    if(args.length < 2){
+        onComplete(context, 'Not enough arguments')
+        return;
+    }
+
+    var sourcePath = cliEvaluatePath(context, args);
+
+    var destPath = cliEvaluatePath(context, args.slice(1))
+
+    callC3Api(context, '/rest/fs' + sourcePath, 'put', {'x-c3-op': 'move'},
+        function(response){
+            onComplete(context, '')
+        },
+        function(error){
+            onComplete(context, 'Failed to execute command, error: ' + error)
+        },
+        destPath
+    );
 
 }
 
@@ -562,7 +608,7 @@ function cliMdItemToString(item){
     return "\t\t" + item['@key'] + ': ' + item['value'];
 }
 
-function callC3Api(context, uri, method, headers, callback, failureCallback){
+function callC3Api(context, uri, method, headers, callback, failureCallback, data){
 
     headers['Accept'] = 'application/json';
 
@@ -571,6 +617,7 @@ function callC3Api(context, uri, method, headers, callback, failureCallback){
         method: method,
         headers: headers,
         emulation: false,
+        data: data,
         onSuccess: function(responseJSON, responseText){
 
             if(responseJSON != null){
