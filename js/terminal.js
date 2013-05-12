@@ -37,15 +37,18 @@ var Terminal = new Class({
 
         if(event.control){
             if(event.code == 86){
-                $('paste-block').style.visibility = 'visible';
 
-                $('paste-block-input').value = '';
-                $('paste-block-input').focus();
+                var pasteBlock = $('paste-block');
+                pasteBlock.style.visibility = 'visible';
+
+                var pasteInput = $('paste-block-input');
+
+                pasteInput.value = '';
+                pasteInput.focus();
                 document.execCommand("Paste");
 
-                $('paste-block').style.visibility = 'hidden';
-                this.currentCommand.set('html', command + $('paste-block-input').value);
-                $('paste-block-input').value = '';
+                pasteBlock.style.visibility = 'hidden';
+                this.currentCommand.set('html', command + pasteInput.value);
             }
         }
 
