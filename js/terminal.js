@@ -1,6 +1,4 @@
 
-function dbg(txt) { if (window.console) console.log(txt); }
-
 var Terminal = new Class({
 
     commandHistory: [],
@@ -43,36 +41,25 @@ var Terminal = new Class({
 
                 $('paste-block-input').value = '';
                 $('paste-block-input').focus();
-                this.inCopyPaste = true
+                document.execCommand("Paste");
+
+                $('paste-block').style.visibility = 'hidden';
+                this.currentCommand.set('html', command + $('paste-block-input').value);
+                $('paste-block-input').value = '';
             }
         }
 
 
         if (event.control || event.alt || event.meta) return;
 
-        if(event.key == 'esc') {
-            if(this.inCopyPaste){
-                this.inCopyPaste = false;
-                $('paste-block').style.visibility = 'hidden';
-                $('paste-block-input').value = '';
-                return;
-            }
-        }
-
         if (event.key == 'enter') {
-            if(!this.inCopyPaste){
-                event.preventDefault();
-                if(command != ''){
-                    this.run();
-                }else{
-                    this.prompt();
-                }
-                return;
+            event.preventDefault();
+            if(command != ''){
+                this.run();
             }else{
-                this.inCopyPaste = false;
-                $('paste-block').style.visibility = 'hidden';
-                this.currentCommand.set('html', command + $('paste-block-input').value);
+                this.prompt();
             }
+            return;
         }
 
         if (event.key == 'backspace') {
@@ -109,9 +96,7 @@ var Terminal = new Class({
     },
 
     keypress: function(event) {
-        //dbg('keypress> ' + event.key + '(' + event.code + ') ' + event.control + ' - ' + event.shift + ' - ' + event.alt + ' - ' + event.meta);
-
-        if(this.inCopyPaste) return;
+        //console.log('keypress> ' + event.key + '(' + event.code + ') ' + event.control + ' - ' + event.shift + ' - ' + event.alt + ' - ' + event.meta);
 
         if (event.control /*|| event.shift*/ || event.alt || event.meta) return;
         var command = this.currentCommand.get('html');
@@ -194,7 +179,11 @@ var Terminal = new Class({
     },
 
     executeCommand: function(cliCommand, context, onComplete) {
-        cliExecuteCommand(cliCommand, context, onComplete)
+        try{
+            cliExecuteCommand(cliCommand, context, onComplete)
+        }catch(e){
+            onComplete(context, 'Unexpected exception during command execution: ' + e)
+        }
     },
 
     storeCommandHistory: function() {
