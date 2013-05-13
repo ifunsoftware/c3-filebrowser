@@ -33,64 +33,70 @@ cliCommands['ls'] = {
 };
 
 cliCommands['show'] = {
-    func: cliShowFile,
+    func: cliCommandShowFile,
     name: 'show',
     description: 'Opens file\'s content in the new window'
 };
 
 cliCommands['cd'] = {
-    func: cliCd,
+    func: cliCommandCd,
     name: 'cd',
     description: 'Changes current working directory'
 };
 
 cliCommands['pwd'] = {
-    func: cliPwd,
+    func: cliCommandPwd,
     name: 'pwd',
     description: 'Displays current working directory'
 };
 
 cliCommands['file'] = {
-    func: cliFile,
+    func: cliCommandFile,
     name: 'file',
     description: 'Displays information about file'
 };
 
 cliCommands['mkdir'] = {
-    func: cliMkDir,
+    func: cliCommandMkDir,
     name: 'mkdir',
     description: 'Creates new directory'
 };
 
 cliCommands['setmd'] = {
-    func: cliSetMd,
+    func: cliCommandSetMd,
     name: 'setmd',
     description: 'Sets metadata pair on file'
 };
 
 cliCommands['rmmd'] = {
-    func: cliRmMd,
+    func: cliCommandRmMd,
     name: 'rmmd',
     description: 'Removes metadata from file'
 };
 
 cliCommands['rm'] = {
-    func: cliRm,
+    func: cliCommandRm,
     name: 'rm',
     description: 'Deletes file'
 };
 
 cliCommands['mv'] = {
-    func: cliMv,
+    func: cliCommandMv,
     name: 'mv',
     description: 'Moves or renames file'
-}
+};
+
+cliCommands['put'] = {
+    func: cliCommandPut,
+    name: 'put',
+    description: 'Uploads file to c3 system'
+};
 
 var defaultCommand = {
     func: cliCommandNotFound
 };
 
-var offlineCommands = ['help', 'connect'];
+var cliOfflineCommands = ['help', 'connect'];
 
 function cliExecuteCommand(command, context, onComplete){
 
@@ -99,7 +105,7 @@ function cliExecuteCommand(command, context, onComplete){
     var commandName = commandArray[0];
     var commandArgs = commandArray.slice(1);
 
-    if(!offlineCommands.contains(commandName)){
+    if(!JQuery.inArray(commandName, cliOfflineCommands)){
         if(context.c3Host == null){
             onComplete(context, "Client is not connected. Please connect first")
             return;
@@ -222,7 +228,7 @@ function cliEvaluatePath(context, args){
         return finalPath;
     }
 
-function cliCd(args, context, onComplete){
+function cliCommandCd(args, context, onComplete){
 
     var newPath = cliEvaluatePath(context, args);
 
@@ -242,7 +248,7 @@ function cliCd(args, context, onComplete){
     });
 }
 
-function cliPwd(args, context, onComplete){
+function cliCommandPwd(args, context, onComplete){
     onComplete(context, context.c3CurrentDir);
 }
 
@@ -337,7 +343,7 @@ function cliCommandLs(args, context, onComplete){
     });
 }
 
-function cliMkDir(args, context, onComplete){
+function cliCommandMkDir(args, context, onComplete){
 
     var path = cliEvaluatePath(context, args);
 
@@ -351,7 +357,7 @@ function cliMkDir(args, context, onComplete){
     );
 }
 
-function cliSetMd(args, context, onComplete){
+function cliCommandSetMd(args, context, onComplete){
 
     if(args.length < 3){
        onComplete(context, 'Not enough arguments');
@@ -373,7 +379,7 @@ function cliSetMd(args, context, onComplete){
     );
 }
 
-function cliRmMd(args, context, onComplete){
+function cliCommandRmMd(args, context, onComplete){
     if(args.length < 2){
         onComplete(context, 'Not enough arguments');
         return;
@@ -453,7 +459,7 @@ function buildFileTable(items, fields, format){
     return result;
 }
 
-function cliShowFile(args, context, onComplete){
+function cliCommandShowFile(args, context, onComplete){
 
     var path = cliEvaluatePath(context, args);
 
@@ -475,7 +481,7 @@ function cliShowFile(args, context, onComplete){
     });
 }
 
-function cliRm(args, context, onComplete){
+function cliCommandRm(args, context, onComplete){
 
     var file = cliEvaluatePath(context, args);
 
@@ -489,16 +495,16 @@ function cliRm(args, context, onComplete){
     );
 }
 
-function cliMv(args, context, onComplete){
+function cliCommandMv(args, context, onComplete){
 
     if(args.length < 2){
-        onComplete(context, 'Not enough arguments')
+        onComplete(context, 'Not enough arguments');
         return;
     }
 
     var sourcePath = cliEvaluatePath(context, args);
 
-    var destPath = cliEvaluatePath(context, args.slice(1))
+    var destPath = cliEvaluatePath(context, args.slice(1));
 
     callC3Api(context, '/rest/fs' + sourcePath, 'put', {'x-c3-op': 'move'},
         function(response){
@@ -510,6 +516,21 @@ function cliMv(args, context, onComplete){
         destPath
     );
 
+}
+
+function cliCommandPut(args, context, onComplete){
+
+    if(args.length < 1){
+        onComplete(context, 'Not enough arguments');
+    }
+
+    var destPath = cliEvaluatePath(context, args);
+
+    chrome.fileSystem.chooseEntry({}, function(entry){
+       console.log(entry)
+    });
+
+    onComplete(context, 'Done')
 }
 
 function cliCommandHelp(args, context, onComplete){
@@ -527,7 +548,7 @@ function cliCommandNotFound(args, context, onComplete){
     onComplete(context, 'Command not found, args ' + args)
 }
 
-function cliFile(args, context, onComplete){
+function cliCommandFile(args, context, onComplete){
 
     var path = cliEvaluatePath(context, args);
 

@@ -1,9 +1,8 @@
 
-var Terminal = new Class({
+var Terminal = {
 
     commandHistory: [],
     commandHistoryIndex: -1,
-    inCopyPaste: false,
 
     supportsStorage: supports_html5_storage(),
 
@@ -24,19 +23,23 @@ var Terminal = new Class({
 
         this.path = '.';
 
-        // Hook events
-        $(document).addEvent('keydown',  function(event) { this.keydown(event); }.bind(this));
-        $(document).addEvent('keypress', function(event) { this.keypress(event); }.bind(this));
+        $(window).keypress(function(event){
+           this.keypress(event)
+        }.bind(this));
+
+        $(window).keydown(function(event){
+           this.keydown(event);
+        }.bind(this));
     },
 
     // Process keystrokes
     keydown: function(event) {
-        //dbg('keydown> ' + event.key + '(' + event.code + ') ' + event.control + ' - ' + event.shift + ' - ' + event.alt + ' - ' + event.meta);
+        //console.log('keydown> ' + event.key + '(' + event.keyCode + ') ' + event.ctrlKey + ' - ' + event.shiftKey + ' - ' + event.altKey + ' - ' + event.metaKey);
 
-        var command = this.currentCommand.get('html');
+        var command = this.currentCommand.text();
 
-        if(event.control){
-            if(event.code == 86){
+        if(event.ctrlKey){
+            if(event.keyCode == 86){
 
                 var pasteBlock = $('paste-block');
                 pasteBlock.style.visibility = 'visible';
@@ -53,9 +56,9 @@ var Terminal = new Class({
         }
 
 
-        if (event.control || event.alt || event.meta) return;
+        if (event.ctrlKey || event.altKey || event.metaKey) return;
 
-        if (event.key == 'enter') {
+        if (event.keyCode == 13 /*Enter*/) {
             event.preventDefault();
             if(command != ''){
                 this.run();
@@ -65,18 +68,18 @@ var Terminal = new Class({
             return;
         }
 
-        if (event.key == 'backspace') {
+        if (event.keyCode == 8 /*backspace*/) {
             event.preventDefault();
             if (command.substr(command.length-6) == '&nbsp;') {
                 command = command.substr(0, command.length-6);
             } else {
                 command = command.substr(0, command.length-1);
             }
-            this.currentCommand.set('html', command);
+            this.currentCommand.empty().append(command);
             return;
         }
 
-        if (event.code == 38) { // Up arrow
+        if (event.keyCode == 38) { // Up arrow
             event.preventDefault();
             //dbg(this.commandHistoryIndex + ', ' + this.commandHistory.length);
             if (this.commandHistoryIndex > 0) {
@@ -86,7 +89,7 @@ var Terminal = new Class({
             return;
         }
 
-        if (event.code == 40) { // Down arrow
+        if (event.keyCode == 40) { // Down arrow
             event.preventDefault();
             //dbg(this.commandHistoryIndex + ', ' + this.commandHistory.length);
             if (this.commandHistoryIndex < this.commandHistory.length) {
@@ -99,31 +102,33 @@ var Terminal = new Class({
     },
 
     keypress: function(event) {
-        //console.log('keypress> ' + event.key + '(' + event.code + ') ' + event.control + ' - ' + event.shift + ' - ' + event.alt + ' - ' + event.meta);
+        //console.log('keypress> ' + event.key + '(' + event.keyCode + ') ' + event.ctrlKey + ' - ' + event.shiftKey + ' - ' + event.altKey + ' - ' + event.metaKey);
 
-        if (event.control /*|| event.shift*/ || event.alt || event.meta) return;
-        var command = this.currentCommand.get('html');
+        if (event.ctrlKey /*|| event.shift*/ || event.altKey || event.metaKey) return;
+        var command = this.currentCommand.text();
 
-        if (event.key == 'space') {
+        if (event.keyCode == 32 /*space*/) {
             event.preventDefault();
             command += ' ';
-            this.currentCommand.set('html', command);
+            this.currentCommand.empty().append(command);
             return;
         }
 
         // For all typing keys
-        if (this.validkey(event.code)) {
+        if (this.validkey(event.keyCode)) {
             event.preventDefault();
-            if (event.code == 46) {
+            if (event.keyCode == 46) {
                 command += '.';
             } else {
-                if(event.shift){
-                    command += event.key.toUpperCase();
+                if(event.shiftKey){
+                    command += String.fromCharCode(event.keyCode).toUpperCase();
                 }else{
-                    command += event.key;
+                    command += String.fromCharCode(event.keyCode);
                 }
             }
-            this.currentCommand.set('html', command);
+
+            //this.currentCommand.;
+            this.currentCommand.empty().append(command);
         }
     },
 
@@ -133,23 +138,29 @@ var Terminal = new Class({
 
     // Outputs a line of text
     out: function(text) {
-        var p = new Element('div');
-        p.set('html', text);
-        this.terminal.grab(p);
+        var p = $('<div></div>');
+        p.append(text)
+        this.terminal.append(p);
     },
 
     // Displays the prompt for command input
     prompt: function() {
         if (this.currentPrompt)
-            this.currentPrompt.getElement('.cursor').destroy();
+            this.currentPrompt.find('.cursor').remove();
 
-        this.currentPrompt = new Element('div');
-        this.currentPrompt.grab(new Element('span').addClass('prompt').set('text', this.promptString()));
-        this.currentCommand = new Element('span').addClass('command');
-        this.currentPrompt.grab(this.currentCommand);
-        this.currentPrompt.grab(new Element('span').addClass('cursor'));
-        this.terminal.grab(this.currentPrompt);
-        $(window).scrollTo(0, this.currentPrompt.getPosition().y);
+        var promptSpan = $('<span class="prompt"></span>');
+        promptSpan.append(this.promptString());
+
+        this.currentPrompt = $('<div></div>');
+        this.currentPrompt.append(promptSpan);
+
+        this.currentCommand = $('<span class="command"></span>');
+        this.currentPrompt.append(this.currentCommand);
+        this.currentPrompt.append($('<span class="cursor"></span>'));
+
+        this.terminal.append(this.currentPrompt);
+
+        window.scrollTo(0, this.currentPrompt.position().top);
     },
 
     promptString: function(){
@@ -162,7 +173,7 @@ var Terminal = new Class({
 
     // Executes a command
     run: function() {
-        var command = this.currentCommand.get('text');
+        var command = this.currentCommand.text();
 
         this.commandHistory.push(command);
         this.commandHistoryIndex = this.commandHistory.length;
@@ -208,7 +219,7 @@ var Terminal = new Class({
 
         }
     }
-});
+};
 
 function supports_html5_storage() {
     try {
@@ -218,6 +229,4 @@ function supports_html5_storage() {
     }
 }
 
-$(window).addEvent('domready', function() {
-    window.terminal = new Terminal($('terminal'));
-});
+$(window).terminal = Terminal.initialize($('#terminal'));

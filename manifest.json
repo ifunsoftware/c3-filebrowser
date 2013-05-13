@@ -1,17 +1,17 @@
 {
-  "name": "C3 file browser",
-  "description": "Application to browse files stored in C3 system",
-  "version": "0.1",
-  "manifest_version": 2,
-  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
-  "permissions": [
+    "name": "C3 file browser",
+    "description": "Application to browse files stored in C3 system",
+    "version": "0.1",
+    "manifest_version": 2,
+    "permissions": [
         "http://*/",
-        "clipboardRead"
-  ],
-  "app": {
-    "launch": {
-      "local_path": "window.html"
-    }
-  },
-  "icons": { "16": "img/terminal-16.png", "128": "img/terminal-128.png" }
+        "clipboardRead",
+        "fileSystem"
+    ],
+    "app": {
+        "background": {
+            "scripts": ["js/background.js"]
+        }
+    },
+    "icons": { "16": "img/terminal-16.png", "128": "img/terminal-128.png" }
 }
