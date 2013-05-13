@@ -666,6 +666,7 @@ function callC3Api(context, uri, method, headers, callback, failureCallback, dat
         cache: false,
         headers: headers,
         type: method,
+        processData: false,
         data: data,
         error: function(jqXHR, textStatus, errorThrown){
             var json = JSON.parse(jqXHR.responseText);

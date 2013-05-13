@@ -4,8 +4,6 @@ var Terminal = {
     commandHistory: [],
     commandHistoryIndex: -1,
 
-    supportsStorage: supports_html5_storage(),
-
     c3Host: null,
     c3Domain: null,
     c3Key: null,
@@ -194,7 +192,7 @@ var Terminal = {
 
     executeCommand: function(cliCommand, context, onComplete) {
 //        try{
-            cliExecuteCommand(cliCommand, context, onComplete)
+            cliExecuteCommand(cliCommand, context, onComplete);
 //        }catch(e){
 //            console.log(e);
 //            onComplete(context, 'Unexpected exception during command execution: ' + e)
@@ -202,33 +200,35 @@ var Terminal = {
     },
 
     storeCommandHistory: function() {
+
+        chrome.storage.local.set({'c3.command.history': JSON.stringify(this.commandHistory)}, function(){
+            console.log('Local storage updated')
+        });
+
         if(this.supportsStorage){
             window['localStorage'].setItem("c3.command.history", JSON.stringify(this.commandHistory));
         }
     },
 
     loadCommandHistory: function() {
-        if(this.supportsStorage){
-            var savedCommandHistory = window['localStorage'].getItem("c3.command.history");
+        var terminal = this;
 
-            if(savedCommandHistory != null){
-                this.commandHistory = JSON.parse(savedCommandHistory);
-                this.commandHistoryIndex = this.commandHistory.length;
+        chrome.storage.local.get('c3.command.history', function(items){
+            if(items != null){
+                console.log(items);
+
+                if(items.hasOwnProperty('c3.command.history')){
+                    terminal.commandHistory = JSON.parse(items['c3.command.history']);
+                    terminal.commandHistoryIndex = terminal.commandHistory.length;
+                    console.log("Loaded " + terminal.commandHistoryIndex + " command for command history")
+                }else{
+                    terminal.commandHistory = [];
+                }
             }else{
-                this.commandHistory = [];
+                terminal.commandHistory = [];
             }
-
-        }
+        });
     }
 };
-
-function supports_html5_storage() {
-    try {
-        return 'localStorage' in window && window['localStorage'] !== null;
-    } catch (e) {
-        console.log("Local storage is not supported");
-        return false;
-    }
-}
 
 $(window).terminal = Terminal.initialize($('#terminal'));

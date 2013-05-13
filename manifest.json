@@ -7,7 +7,8 @@
         "http://*/",
         "clipboardRead",
         "fileSystem",
-        "webview"
+        "webview",
+        "storage"
     ],
     "app": {
         "background": {
