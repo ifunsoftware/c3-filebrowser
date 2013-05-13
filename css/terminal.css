@@ -31,6 +31,10 @@ div {
     white-space: pre;
 }
 
+div#terminal {
+    display: inline;
+}
+
 span {
     float: left;
 }

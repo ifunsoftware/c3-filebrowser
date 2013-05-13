@@ -8,6 +8,8 @@
 
 var cliCommands = {};
 
+//var embedWindow = null;
+
 cliCommands['help'] = {
     func: cliCommandHelp,
     name: 'help',
@@ -105,7 +107,7 @@ function cliExecuteCommand(command, context, onComplete){
     var commandName = commandArray[0];
     var commandArgs = commandArray.slice(1);
 
-    if(!JQuery.inArray(commandName, cliOfflineCommands)){
+    if($.inArray(commandName, cliOfflineCommands) == -1){
         if(context.c3Host == null){
             onComplete(context, "Client is not connected. Please connect first")
             return;
@@ -154,9 +156,9 @@ function cliCommandConnect(args, context, onComplete){
             var version = null;
 
             modules.forEach(function(module){
-               if(module['name'] == 'org.aphreet.c3.platform.access.rest'){
-                   version = module['version'];
-               }
+                if(module['name'] == 'org.aphreet.c3.platform.access.rest'){
+                    version = module['version'];
+                }
             });
 
             if(context.c3Domain != null){
@@ -186,47 +188,47 @@ function cliCommandDisconnect(args, context, onComplete){
 
 function cliEvaluatePath(context, args){
 
-        if(args.length == 0){
-            return context.c3CurrentDir;
-        }
-
-        var path = args[0];
-
-
-        if(path.length == 0 || path[0] != '/'){
-            path = context.c3CurrentDir + path;
-        }
-
-        var pathComponents = path.split("/");
-
-        var pathStack = [];
-
-        pathComponents.forEach(function(item){
-            switch(item){
-                case "":
-                    break;
-                case ".":
-                    break;
-                case "..":{
-                    if(pathStack.length != 0){
-                        pathStack.pop();
-                    }
-                    break;
-                }
-                default :{
-                    pathStack.push(item);
-                }
-            }
-        });
-
-        var finalPath = "/" + pathStack.join("/");
-
-        if(finalPath != "/"){
-            finalPath = finalPath + "/";
-        }
-
-        return finalPath;
+    if(args.length == 0){
+        return context.c3CurrentDir;
     }
+
+    var path = args[0];
+
+
+    if(path.length == 0 || path[0] != '/'){
+        path = context.c3CurrentDir + path;
+    }
+
+    var pathComponents = path.split("/");
+
+    var pathStack = [];
+
+    pathComponents.forEach(function(item){
+        switch(item){
+            case "":
+                break;
+            case ".":
+                break;
+            case "..":{
+                if(pathStack.length != 0){
+                    pathStack.pop();
+                }
+                break;
+            }
+            default :{
+                pathStack.push(item);
+            }
+        }
+    });
+
+    var finalPath = "/" + pathStack.join("/");
+
+    if(finalPath != "/"){
+        finalPath = finalPath + "/";
+    }
+
+    return finalPath;
+}
 
 function cliCommandCd(args, context, onComplete){
 
@@ -360,8 +362,8 @@ function cliCommandMkDir(args, context, onComplete){
 function cliCommandSetMd(args, context, onComplete){
 
     if(args.length < 3){
-       onComplete(context, 'Not enough arguments');
-       return;
+        onComplete(context, 'Not enough arguments');
+        return;
     }
 
     var path = cliEvaluatePath(context, args);
@@ -466,13 +468,19 @@ function cliCommandShowFile(args, context, onComplete){
     cliCheckIfFileExists(context, path, onComplete, function(address){
         callC3Api(context, '/rest/once/' + address, 'post', {},
             function(response){
-                chrome.windows.create({
-                    'url': 'http://' + context.c3Host + '/rest' + response['uri'],
-                    'type': 'popup'
-                }, function(window){
-                    onComplete(context, '');
-                });
 
+                chrome.app.window.create('data.html', {
+                        'width': 800,
+                        'height': 600
+                    }, function(embedWindow){
+
+                        embedWindow.contentWindow.onload = function(){
+                            console.log("Ready!");
+                            embedWindow.contentWindow.document.querySelector("#contentwebview").src = 'http://' + context.c3Host + '/rest' + response['uri'];
+                        };
+                        onComplete(context, '');
+                    }
+                );
             },
             function(error){
                 onComplete(context, 'Failed to execute request, error: ' + error)
@@ -527,7 +535,7 @@ function cliCommandPut(args, context, onComplete){
     var destPath = cliEvaluatePath(context, args);
 
     chrome.fileSystem.chooseEntry({}, function(entry){
-       console.log(entry)
+        console.log(entry)
     });
 
     onComplete(context, 'Done')
@@ -572,7 +580,7 @@ function cliCommandFile(args, context, onComplete){
 
             output.push('\tSystem metadata:');
             cliProcessCollection(resource['systemMetadata']['element'], function(item){
-               output.push(cliMdItemToString(item));
+                output.push(cliMdItemToString(item));
             });
 
             output.push('\tTransient metadata:');
@@ -591,7 +599,7 @@ function cliCommandFile(args, context, onComplete){
             var result = '';
 
             output.forEach(function(item){
-               result = result + item + "\n";
+                result = result + item + "\n";
             });
 
             onComplete(context, result);
@@ -645,7 +653,7 @@ function callC3Api(context, uri, method, headers, callback, failureCallback, dat
         var date = (new Date()).toUTCString();
         headers['x-c3-date'] = date;
 
-        var hashBase = uri.split("?")[0] + date + context.c3Domain
+        var hashBase = uri.split("?")[0] + date + context.c3Domain;
 
         //console.log(hashBase);
         headers['x-c3-sign'] = CryptoJS.HmacSHA256(hashBase, context.c3Key).toString(CryptoJS.enc.Hex);
@@ -653,17 +661,27 @@ function callC3Api(context, uri, method, headers, callback, failureCallback, dat
         //console.log(headers['x-c3-sign'])
     }
 
-
-    var request = new Request.JSON({
-        url: 'http://' + context.c3Host + uri,
-        method: method,
+    $.ajax('http://' + context.c3Host + uri, {
+        accepts: 'application/json',
+        cache: false,
         headers: headers,
-        emulation: false,
+        type: method,
         data: data,
-        onSuccess: function(responseJSON, responseText){
+        error: function(jqXHR, textStatus, errorThrown){
+            var json = JSON.parse(jqXHR.responseText);
+            var message = json['p:response']['error']['message']
 
-            if(responseJSON != null){
-                var response = responseJSON['p:response'];
+            if(message){
+                failureCallback(message)
+            }else{
+                failureCallback(jqXHR.status)
+            }
+        },
+        success: function(data, textStatus, jqXHR){
+            var json = JSON.parse(jqXHR.responseText);
+
+            if(json){
+                var response = json['p:response'];
 
                 if(response["info"]["status"] != "OK"){
                     failureCallback("Response status is not ok");
@@ -673,21 +691,7 @@ function callC3Api(context, uri, method, headers, callback, failureCallback, dat
             }else{
                 failureCallback("Can't parse JSON response");
             }
-
-        },
-        onFailure: function(xhr){
-            var json = JSON.decode(xhr.responseText)
-
-            var message = json['p:response']['error']['message']
-
-            if(message){
-                failureCallback(message)
-            }else{
-                failureCallback(xhr.status)
-            }
         }
     });
-
-    request.send();
 }
 

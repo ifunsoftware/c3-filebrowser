@@ -84,7 +84,7 @@ var Terminal = {
             //dbg(this.commandHistoryIndex + ', ' + this.commandHistory.length);
             if (this.commandHistoryIndex > 0) {
                 this.commandHistoryIndex--;
-                this.currentCommand.set('html', this.commandHistory[this.commandHistoryIndex]);
+                this.currentCommand.empty().append(this.commandHistory[this.commandHistoryIndex]);
             }
             return;
         }
@@ -94,7 +94,7 @@ var Terminal = {
             //dbg(this.commandHistoryIndex + ', ' + this.commandHistory.length);
             if (this.commandHistoryIndex < this.commandHistory.length) {
                 this.commandHistoryIndex++;
-                this.currentCommand.set('html', this.commandHistory[this.commandHistoryIndex]);
+                this.currentCommand.empty().append(this.commandHistory[this.commandHistoryIndex]);
                 // This can overflow the array by 1, which will clear the command line
             }
         }
@@ -193,16 +193,17 @@ var Terminal = {
     },
 
     executeCommand: function(cliCommand, context, onComplete) {
-        try{
+//        try{
             cliExecuteCommand(cliCommand, context, onComplete)
-        }catch(e){
-            onComplete(context, 'Unexpected exception during command execution: ' + e)
-        }
+//        }catch(e){
+//            console.log(e);
+//            onComplete(context, 'Unexpected exception during command execution: ' + e)
+//        }
     },
 
     storeCommandHistory: function() {
         if(this.supportsStorage){
-            window['localStorage'].setItem("c3.command.history", JSON.encode(this.commandHistory));
+            window['localStorage'].setItem("c3.command.history", JSON.stringify(this.commandHistory));
         }
     },
 
@@ -211,7 +212,7 @@ var Terminal = {
             var savedCommandHistory = window['localStorage'].getItem("c3.command.history");
 
             if(savedCommandHistory != null){
-                this.commandHistory = JSON.decode(savedCommandHistory);
+                this.commandHistory = JSON.parse(savedCommandHistory);
                 this.commandHistoryIndex = this.commandHistory.length;
             }else{
                 this.commandHistory = [];
@@ -225,6 +226,7 @@ function supports_html5_storage() {
     try {
         return 'localStorage' in window && window['localStorage'] !== null;
     } catch (e) {
+        console.log("Local storage is not supported");
         return false;
     }
 }
