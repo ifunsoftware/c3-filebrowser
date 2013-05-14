@@ -535,10 +535,40 @@ function cliCommandPut(args, context, onComplete){
     var destPath = cliEvaluatePath(context, args);
 
     chrome.fileSystem.chooseEntry({}, function(entry){
-        console.log(entry)
-    });
 
-    onComplete(context, 'Done')
+        if(entry){
+
+            console.log(entry);
+
+            var reader = new FileReader();
+            reader.onload = function(content){
+                console.log(content.target.result);
+
+                callC3Api(context, '/rest/fs' + destPath, 'POST', {},
+                    function(response){
+                        onComplete(context, '');
+                    },
+                    function(error){
+                        onComplete(context, 'Failed to upload file: ' + error);
+                    },
+                    content.target.result
+                );
+
+            };
+
+            reader.onerror = function(error){
+                console.log(error);
+                onComplete(context, 'Failed to upload file: ' + error)
+            };
+
+            entry.file(function(file){
+                reader.readAsBinaryString(file);
+            });
+        }else{
+            onComplete(context, 'No file chosen');
+        }
+
+    });
 }
 
 function cliCommandHelp(args, context, onComplete){

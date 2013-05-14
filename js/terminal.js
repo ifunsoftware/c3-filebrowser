@@ -165,9 +165,8 @@ var Terminal = {
             }
 
             var numberOfLines = textToAppend.split("\n").length - 1;
-
-            terminalOutput.append(textToAppend);
             terminalOutput.attr('rows', currentLines + numberOfLines);
+            terminalOutput.append(textToAppend);
         }
     },
 
@@ -194,14 +193,12 @@ var Terminal = {
     run: function() {
         var command = this.currentCommand.text();
 
-        document.execCommand('SelectAll');
-        document.execCommand('Copy');
-
-
         this.commandHistory.push(command);
         this.commandHistoryIndex = this.commandHistory.length;
 
         this.storeCommandHistory();
+
+        $('#terminal').visibility = 'hidden';
 
         this.executeCommand(command, this, function(context, response){
 
@@ -211,17 +208,18 @@ var Terminal = {
                 context.out(response)
             }
 
-            context.prompt()
+            context.prompt();
+            $('#terminal').visibility = 'visible';
         })
     },
 
     executeCommand: function(cliCommand, context, onComplete) {
-//        try{
+        try{
             cliExecuteCommand(cliCommand, context, onComplete);
-//        }catch(e){
-//            console.log(e);
-//            onComplete(context, 'Unexpected exception during command execution: ' + e)
-//        }
+        }catch(e){
+            console.log(e);
+            onComplete(context, 'Unexpected exception during command execution: ' + e)
+        }
     },
 
     storeCommandHistory: function() {

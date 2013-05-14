@@ -1,7 +1,7 @@
 {
     "name": "C3 file browser",
     "description": "Application to browse files stored in C3 system",
-    "version": "0.1",
+    "version": "0.2",
     "manifest_version": 2,
     "permissions": [
         "http://*/",
