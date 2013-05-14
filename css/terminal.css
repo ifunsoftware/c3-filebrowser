@@ -17,6 +17,7 @@ body, #terminaloutput {
     resize: none;
     width:100%;
     outline: none;
+    display: block;
 }
 
 a {
@@ -37,10 +38,6 @@ div {
     overflow: hidden;
     zoom: 1;
     white-space: pre;
-}
-
-div#terminal {
-    display: inline;
 }
 
 span {

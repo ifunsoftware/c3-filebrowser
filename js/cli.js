@@ -445,7 +445,7 @@ function cliCheckIfExists(context, path, directoryRequired, onComplete, continua
 
 
 function buildFileTable(items, fields, format){
-    var result = "";
+    var lines = [];
 
     items.forEach(function(item){
 
@@ -455,10 +455,10 @@ function buildFileTable(items, fields, format){
             values.push(item[field]);
         });
 
-        result = result + String.form(format, values) + "\n";
+        lines.push(String.form(format, values));
     });
 
-    return result;
+    return lines.join('\n');
 }
 
 function cliCommandShowFile(args, context, onComplete){

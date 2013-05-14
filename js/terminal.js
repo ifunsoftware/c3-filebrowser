@@ -32,8 +32,6 @@ var Terminal = {
         this.out('Type help to get list of available commands');
         this.prompt();
 
-        this.path = '.';
-
         $(window).keypress(function(event){
            this.keypress(event)
         }.bind(this));
@@ -153,15 +151,24 @@ var Terminal = {
     // Outputs a line of text
     out: function(text) {
 
-        var terminalOutput = $('#terminaloutput');
+        if(text != ''){
+            var terminalOutput = $('#terminaloutput');
 
-        var textToAppend = '\n' + text;
+            var currentLines = parseInt(terminalOutput.attr('rows'));
 
-        var numberOfLines = textToAppend.split("\n").length - 1;
-        var currentLines = parseInt(terminalOutput.attr('rows'));
+            var textToAppend;
 
-        terminalOutput.append(textToAppend);
-        terminalOutput.attr('rows', currentLines + numberOfLines);
+            if(currentLines > 0){
+                textToAppend = '\n' + text;
+            }else{
+                textToAppend = text;
+            }
+
+            var numberOfLines = textToAppend.split("\n").length - 1;
+
+            terminalOutput.append(textToAppend);
+            terminalOutput.attr('rows', currentLines + numberOfLines);
+        }
     },
 
     // Displays the prompt for command input
