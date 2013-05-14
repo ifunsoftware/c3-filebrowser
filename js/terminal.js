@@ -145,7 +145,7 @@ var Terminal = {
     },
 
     validkey: function(code) {
-        return  (code >= 33 && code <= 127);
+        return  (code >= 33 && code <= 127) || (code >= 1040 && code <= 1103);
     },
 
     // Outputs a line of text
