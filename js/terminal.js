@@ -13,6 +13,19 @@ var Terminal = {
     initialize: function(container) {
         this.terminal = container;
 
+        var promptSpan = $('<span class="prompt"></span>');
+        promptSpan.append(this.promptString());
+
+        this.currentPrompt = $('<div></div>');
+        this.currentPrompt.append(promptSpan);
+
+        this.currentCommand = $('<span class="command"></span>');
+        this.currentPrompt.append(this.currentCommand);
+        this.currentPrompt.append($('<span class="cursor"></span>'));
+
+        this.terminal.append(this.currentPrompt);
+
+
         this.loadCommandHistory();
 
         this.out('Welcome to C3 file browser');
@@ -58,6 +71,9 @@ var Terminal = {
 
         if (event.keyCode == 13 /*Enter*/) {
             event.preventDefault();
+
+            this.storeCurrentCommand();
+
             if(command != ''){
                 this.run();
             }else{
@@ -136,37 +152,35 @@ var Terminal = {
 
     // Outputs a line of text
     out: function(text) {
-        var p = $('<div></div>');
-        p.append(text)
-        this.terminal.append(p);
+
+        var terminalOutput = $('#terminaloutput');
+
+        var textToAppend = '\n' + text;
+
+        var numberOfLines = textToAppend.split("\n").length - 1;
+        var currentLines = parseInt(terminalOutput.attr('rows'));
+
+        terminalOutput.append(textToAppend);
+        terminalOutput.attr('rows', currentLines + numberOfLines);
     },
 
     // Displays the prompt for command input
     prompt: function() {
-        if (this.currentPrompt)
-            this.currentPrompt.find('.cursor').remove();
-
-        var promptSpan = $('<span class="prompt"></span>');
-        promptSpan.append(this.promptString());
-
-        this.currentPrompt = $('<div></div>');
-        this.currentPrompt.append(promptSpan);
-
-        this.currentCommand = $('<span class="command"></span>');
-        this.currentPrompt.append(this.currentCommand);
-        this.currentPrompt.append($('<span class="cursor"></span>'));
-
-        this.terminal.append(this.currentPrompt);
-
+        this.currentPrompt.find('.prompt').empty().append(this.promptString());
+        this.currentPrompt.find('.command').empty();
         window.scrollTo(0, this.currentPrompt.position().top);
     },
 
     promptString: function(){
         if(this.c3Host == null){
-            return "::";
+            return ":: ";
         }else{
-            return this.c3Host + "::" + this.c3CurrentDirName + ":";
+            return this.c3Host + "::" + this.c3CurrentDirName + ": ";
         }
+    },
+
+    storeCurrentCommand: function(){
+        this.out(this.currentPrompt.find('.prompt').text() + this.currentPrompt.find('.command').text());
     },
 
     // Executes a command
@@ -205,9 +219,7 @@ var Terminal = {
 
     storeCommandHistory: function() {
 
-        chrome.storage.local.set({'c3.command.history': JSON.stringify(this.commandHistory)}, function(){
-            console.log('Local storage updated')
-        });
+        chrome.storage.local.set({'c3.command.history': JSON.stringify(this.commandHistory)});
 
         if(this.supportsStorage){
             window['localStorage'].setItem("c3.command.history", JSON.stringify(this.commandHistory));
@@ -219,8 +231,6 @@ var Terminal = {
 
         chrome.storage.local.get('c3.command.history', function(items){
             if(items != null){
-                console.log(items);
-
                 if(items.hasOwnProperty('c3.command.history')){
                     terminal.commandHistory = JSON.parse(items['c3.command.history']);
                     terminal.commandHistoryIndex = terminal.commandHistory.length;

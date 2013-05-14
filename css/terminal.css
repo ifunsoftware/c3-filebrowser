@@ -4,11 +4,19 @@
     padding: 0;
 }
 
-body {
+body, #terminaloutput {
     background: #111;
     color: #BFBFBF;
     font: 12px Mono, Monaco, "Lucida Console", "Courier New", Courier;
     padding: 5px;
+}
+
+#terminaloutput {
+    padding: 0;
+    border: none;
+    resize: none;
+    width:100%;
+    outline: none;
 }
 
 a {
@@ -37,9 +45,6 @@ div#terminal {
 
 span {
     float: left;
-}
-span.prompt {
-    padding-right: 10px;
 }
 span.cursor {
     background-color: #0f0;
