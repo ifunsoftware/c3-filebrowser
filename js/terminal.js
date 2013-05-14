@@ -39,17 +39,17 @@ var Terminal = {
         if(event.ctrlKey){
             if(event.keyCode == 86){
 
-                var pasteBlock = $('paste-block');
+                var pasteBlock = $('#paste-block');
                 pasteBlock.style.visibility = 'visible';
 
-                var pasteInput = $('paste-block-input');
+                var pasteInput = $('#paste-block-input');
 
                 pasteInput.value = '';
                 pasteInput.focus();
                 document.execCommand("Paste");
 
                 pasteBlock.style.visibility = 'hidden';
-                this.currentCommand.set('html', command + pasteInput.value);
+                this.currentCommand.empty().append(command + pasteInput.value);
             }
         }
 
@@ -172,6 +172,10 @@ var Terminal = {
     // Executes a command
     run: function() {
         var command = this.currentCommand.text();
+
+        document.execCommand('SelectAll');
+        document.execCommand('Copy');
+
 
         this.commandHistory.push(command);
         this.commandHistoryIndex = this.commandHistory.length;
