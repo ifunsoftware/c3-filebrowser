@@ -4,14 +4,14 @@
     padding: 0;
 }
 
-body, #terminaloutput {
+body, .terminal-output {
     background: #111;
     color: #BFBFBF;
     font: 12px Mono, Monaco, "Lucida Console", "Courier New", Courier;
     padding: 5px;
 }
 
-#terminaloutput {
+.terminal-output {
     padding: 0;
     border: none;
     resize: none;
@@ -36,7 +36,9 @@ b {
 
 div {
     overflow: hidden;
-    zoom: 1;
+}
+
+div.terminal-input {
     white-space: pre;
 }
 

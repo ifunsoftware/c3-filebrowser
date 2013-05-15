@@ -5,13 +5,18 @@
     <title>C3 file browser</title>
     <link rel="stylesheet" href="css/terminal.css" type="text/css" media="screen" title="main" charset="utf-8">
 </head>
+
 <body>
-<textarea id="terminaloutput" readonly rows="1"></textarea>
-<div id="terminal"></div>
-<div id="paste-block" style="visibility:hidden; float: right"><input type="text" id="paste-block-input" size="50"/></div>
+<div id="terminal">
+    <textarea class="terminal-output" readonly rows="1"></textarea>
+    <div class="terminal-input"></div>
+    <div class="terminal-paste" style="visibility:hidden; float: right">
+        <input type="text" class="terminal-paste-input" size="50"/>
+    </div>
+</div>
 </body>
+
 <script src="js/hmac-sha256.js" type="text/javascript" charset="utf-8"></script>
-<!--script src="js/mootools-1.2.1-core-nc.js" type="text/javascript" charset="utf-8"></script-->
 <script src="js/jquery-2.0.0.js" type="text/javascript" charset="utf-8"></script>
 <script src="js/util.js" type="text/javascript" charset="utf-8"></script>
 <script src="js/cli.js" charset="utf-8"></script>

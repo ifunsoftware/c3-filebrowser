@@ -475,7 +475,6 @@ function cliCommandShowFile(args, context, onComplete){
                     }, function(embedWindow){
 
                         embedWindow.contentWindow.onload = function(){
-                            console.log("Ready!");
                             embedWindow.contentWindow.document.querySelector("#contentwebview").src = 'http://' + context.c3Host + '/rest' + response['uri'];
                         };
                         onComplete(context, '');

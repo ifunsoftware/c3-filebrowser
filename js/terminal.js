@@ -1,8 +1,13 @@
 
 var Terminal = {
 
+    container: null,
+
     commandHistory: [],
     commandHistoryIndex: -1,
+
+    currentPrompt: null,
+    currentCommand: null,
 
     c3Host: null,
     c3Domain: null,
@@ -11,7 +16,10 @@ var Terminal = {
     c3CurrentDirName: "/",
 
     initialize: function(container) {
-        this.terminal = container;
+
+        this.container = container;
+
+        this.terminalInput = this.container.find('.terminal-input');
 
         var promptSpan = $('<span class="prompt"></span>');
         promptSpan.append(this.promptString());
@@ -23,22 +31,22 @@ var Terminal = {
         this.currentPrompt.append(this.currentCommand);
         this.currentPrompt.append($('<span class="cursor"></span>'));
 
-        this.terminal.append(this.currentPrompt);
+        this.terminalInput.append(this.currentPrompt);
 
 
         this.loadCommandHistory();
 
-        this.out('Welcome to C3 file browser');
-        this.out('Type help to get list of available commands');
-        this.prompt();
-
         $(window).keypress(function(event){
-           this.keypress(event)
+            this.keypress(event)
         }.bind(this));
 
         $(window).keydown(function(event){
-           this.keydown(event);
+            this.keydown(event);
         }.bind(this));
+
+        this.out('Welcome to C3 file browser');
+        this.out('Type help to get list of available commands');
+        this.prompt();
     },
 
     // Process keystrokes
@@ -50,17 +58,19 @@ var Terminal = {
         if(event.ctrlKey){
             if(event.keyCode == 86){
 
-                var pasteBlock = $('#paste-block');
-                pasteBlock.style.visibility = 'visible';
+                var pasteBlock = this.container.find('.terminal-paste');
 
-                var pasteInput = $('#paste-block-input');
+                pasteBlock.css('visibility', 'visible');
 
-                pasteInput.value = '';
+                var pasteInput = pasteBlock.find('.terminal-paste-input');
+
+                pasteInput.val('');
                 pasteInput.focus();
                 document.execCommand("Paste");
 
-                pasteBlock.style.visibility = 'hidden';
-                this.currentCommand.empty().append(command + pasteInput.value);
+                pasteBlock.css('visibility', 'hidden');
+
+                this.currentCommand.empty().append(command + pasteInput.val());
             }
         }
 
@@ -152,7 +162,7 @@ var Terminal = {
     out: function(text) {
 
         if(text != ''){
-            var terminalOutput = $('#terminaloutput');
+            var terminalOutput = this.container.find('.terminal-output');
 
             var currentLines = parseInt(terminalOutput.attr('rows'));
 
@@ -198,7 +208,8 @@ var Terminal = {
 
         this.storeCommandHistory();
 
-        $('#terminal').visibility = 'hidden';
+        var terminalInput = this.container.find('.terminal-input');
+        terminalInput.css('visibility', 'hidden');
 
         this.executeCommand(command, this, function(context, response){
 
@@ -209,7 +220,7 @@ var Terminal = {
             }
 
             context.prompt();
-            $('#terminal').visibility = 'visible';
+            terminalInput.css('visibility', 'visible');
         })
     },
 
@@ -223,12 +234,7 @@ var Terminal = {
     },
 
     storeCommandHistory: function() {
-
         chrome.storage.local.set({'c3.command.history': JSON.stringify(this.commandHistory)});
-
-        if(this.supportsStorage){
-            window['localStorage'].setItem("c3.command.history", JSON.stringify(this.commandHistory));
-        }
     },
 
     loadCommandHistory: function() {
@@ -239,7 +245,7 @@ var Terminal = {
                 if(items.hasOwnProperty('c3.command.history')){
                     terminal.commandHistory = JSON.parse(items['c3.command.history']);
                     terminal.commandHistoryIndex = terminal.commandHistory.length;
-                    console.log("Loaded " + terminal.commandHistoryIndex + " command for command history")
+                    console.log("Loaded " + terminal.commandHistoryIndex + " commands from history")
                 }else{
                     terminal.commandHistory = [];
                 }
