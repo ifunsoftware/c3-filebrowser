@@ -6,131 +6,158 @@
  * To change this template use File | Settings | File Templates.
  */
 
-var cliCommands = {};
+var cli = {
 
-//var embedWindow = null;
+    cliCommands: [],
 
-cliCommands['help'] = {
+    defaultCommand: {
+        func: cliCommandNotFound
+    },
+
+    offlineCommands: ['help', 'connect'],
+
+    welcomeMessages: [
+        'Welcome to C3 file browser',
+        'Type help to get list of available commands'
+    ],
+
+    state: {
+        c3Host: null,
+        c3Domain: null,
+        c3Key: null,
+        c3CurrentDir: "/",
+        c3CurrentDirName: "/"
+    },
+
+    execute: function(command, context, onComplete){
+        var commandArray = command.split(" ");
+
+        var commandName = commandArray[0];
+        var commandArgs = commandArray.slice(1);
+
+        if($.inArray(commandName, this.offlineCommands) == -1){
+            if(context.cli.state.c3Host == null){
+                onComplete(context, "Client is not connected. Please connect first")
+                return;
+            }
+        }
+
+        var cliFunc = this.cliFindCommand(commandName).func;
+
+        cliFunc(commandArgs, context, onComplete);
+    },
+
+    prompt: function(context){
+
+        var state = context.cli.state;
+
+        if(state.c3Host == null){
+            return ":: ";
+        }else{
+            return state.c3Host + "::" + state.c3CurrentDirName + ": ";
+        }
+    },
+
+    cliFindCommand: function(name){
+
+        if(name in this.cliCommands){
+            return this.cliCommands[name];
+        }else{
+            return this.defaultCommand;
+        }
+    }
+};
+
+cli.cliCommands['help'] = {
     func: cliCommandHelp,
     name: 'help',
     description: 'Displays help message'
 };
 
-cliCommands['connect'] = {
+cli.cliCommands['connect'] = {
     func: cliCommandConnect,
     name: 'connect',
     description: 'Connects to the c3 system'
 };
 
-cliCommands['disconnect'] = {
+cli.cliCommands['disconnect'] = {
     func: cliCommandDisconnect,
     name: 'disconnect',
     description: 'Disconnects from the c3 system'
 };
 
-cliCommands['ls'] = {
+cli.cliCommands['ls'] = {
     func: cliCommandLs,
     name: 'ls',
     description: 'Lists files in the directory'
 };
 
-cliCommands['show'] = {
+cli.cliCommands['show'] = {
     func: cliCommandShowFile,
     name: 'show',
     description: 'Opens file\'s content in the new window'
 };
 
-cliCommands['cd'] = {
+cli.cliCommands['cd'] = {
     func: cliCommandCd,
     name: 'cd',
     description: 'Changes current working directory'
 };
 
-cliCommands['pwd'] = {
+cli.cliCommands['pwd'] = {
     func: cliCommandPwd,
     name: 'pwd',
     description: 'Displays current working directory'
 };
 
-cliCommands['file'] = {
+cli.cliCommands['file'] = {
     func: cliCommandFile,
     name: 'file',
     description: 'Displays information about file'
 };
 
-cliCommands['mkdir'] = {
+cli.cliCommands['mkdir'] = {
     func: cliCommandMkDir,
     name: 'mkdir',
     description: 'Creates new directory'
 };
 
-cliCommands['setmd'] = {
+cli.cliCommands['setmd'] = {
     func: cliCommandSetMd,
     name: 'setmd',
     description: 'Sets metadata pair on file'
 };
 
-cliCommands['rmmd'] = {
+cli.cliCommands['rmmd'] = {
     func: cliCommandRmMd,
     name: 'rmmd',
     description: 'Removes metadata from file'
 };
 
-cliCommands['rm'] = {
+cli.cliCommands['rm'] = {
     func: cliCommandRm,
     name: 'rm',
     description: 'Deletes file'
 };
 
-cliCommands['mv'] = {
+cli.cliCommands['mv'] = {
     func: cliCommandMv,
     name: 'mv',
     description: 'Moves or renames file'
 };
 
-cliCommands['put'] = {
+cli.cliCommands['put'] = {
     func: cliCommandPut,
     name: 'put',
     description: 'Uploads file to c3 system'
 };
 
-var defaultCommand = {
-    func: cliCommandNotFound
-};
-
-var cliOfflineCommands = ['help', 'connect'];
-
-function cliExecuteCommand(command, context, onComplete){
-
-    var commandArray = command.split(" ");
-
-    var commandName = commandArray[0];
-    var commandArgs = commandArray.slice(1);
-
-    if($.inArray(commandName, cliOfflineCommands) == -1){
-        if(context.c3Host == null){
-            onComplete(context, "Client is not connected. Please connect first")
-            return;
-        }
-    }
-
-    var cliFunc = cliFindCommand(commandName).func;
-
-    cliFunc(commandArgs, context, onComplete);
-}
-
-function cliFindCommand(name){
-
-    if(name in cliCommands){
-        return cliCommands[name];
-    }else{
-        return defaultCommand;
-    }
-}
 
 function cliCommandConnect(args, context, onComplete){
 
-    if(context.host != null){
+    var state = context.cli.state;
+
+    if(state.c3Host != null){
         onComplete(context, "Client is already connected, please disconnect first");
         return;
     }
@@ -144,9 +171,9 @@ function cliCommandConnect(args, context, onComplete){
     var domain = args[1];
     var key = args[2];
 
-    context.c3Host = host;
-    context.c3Domain = domain;
-    context.c3Key = key;
+    state.c3Host = host;
+    state.c3Domain = domain;
+    state.c3Key = key;
 
     callC3Api(context, '/rest/status', 'get', {},
         function(response){
@@ -161,42 +188,47 @@ function cliCommandConnect(args, context, onComplete){
                 }
             });
 
-            if(context.c3Domain != null){
+            if(state.c3Domain != null){
                 onComplete(context, 'Connected to ' + host + ' using domain ' + domain + ', api version ' + version);
             }else{
                 onComplete(context, 'Connected to ' + host + ', api version ' + version);
             }
         },
         function(error){
-            context.c3Host = null;
-            context.c3Domain = null;
-            context.c3Key = null;
+            state.c3Host = null;
+            state.c3Domain = null;
+            state.c3Key = null;
             onComplete(context, 'Failed to connect to host ' + host + ', error is ' + error);
         }
     );
 }
 
 function cliCommandDisconnect(args, context, onComplete){
-    context.c3Host = null;
-    context.c3Domain = null;
-    context.c3Key = null;
-    context.c3CurrentDir = "/";
-    context.c3CurrentDirName = "/";
+
+    var state = context.cli.state;
+
+    state.c3Host = null;
+    state.c3Domain = null;
+    state.c3Key = null;
+    state.c3CurrentDir = "/";
+    state.c3CurrentDirName = "/";
 
     onComplete(context, "Disconnected")
 }
 
 function cliEvaluatePath(context, args){
 
+    var state = context.cli.state;
+
     if(args.length == 0){
-        return context.c3CurrentDir;
+        return state.c3CurrentDir;
     }
 
     var path = args[0];
 
 
     if(path.length == 0 || path[0] != '/'){
-        path = context.c3CurrentDir + path;
+        path = state.c3CurrentDir + path;
     }
 
     var pathComponents = path.split("/");
@@ -232,26 +264,28 @@ function cliEvaluatePath(context, args){
 
 function cliCommandCd(args, context, onComplete){
 
+    var state = context.cli.state;
+
     var newPath = cliEvaluatePath(context, args);
 
     cliCheckIfDirectoryExists(context, newPath, onComplete, function(address){
-        context.c3CurrentDir = newPath;
+        state.c3CurrentDir = newPath;
 
         var components = newPath.split("/").filter(function(item){
             return item != "";
         });
 
         if(components.length == 0){
-            context.c3CurrentDirName = "/";
+            state.c3CurrentDirName = "/";
         }else{
-            context.c3CurrentDirName = components.pop();
+            state.c3CurrentDirName = components.pop();
         }
         onComplete(context, "")
     });
 }
 
 function cliCommandPwd(args, context, onComplete){
-    onComplete(context, context.c3CurrentDir);
+    onComplete(context, context.cli.state.c3CurrentDir);
 }
 
 function buildFiles(response){
@@ -307,13 +341,13 @@ function cliCommandLs(args, context, onComplete){
     var dir = "";
 
     if(args.length == 0){
-        dir = context.c3CurrentDir;
+        dir = context.cli.state.c3CurrentDir;
     }else{
         var path = args[0];
         if(path[0] == '/'){
             dir = path;
         }else{
-            dir = context.c3CurrentDir + path;
+            dir = context.cli.state.c3CurrentDir + path;
         }
     }
 
@@ -475,7 +509,7 @@ function cliCommandShowFile(args, context, onComplete){
                     }, function(embedWindow){
 
                         embedWindow.contentWindow.onload = function(){
-                            embedWindow.contentWindow.document.querySelector("#contentwebview").src = 'http://' + context.c3Host + '/rest' + response['uri'];
+                            embedWindow.contentWindow.document.querySelector("#contentwebview").src = 'http://' + context.cli.state.c3Host + '/rest' + response['uri'];
                         };
                         onComplete(context, '');
                     }
@@ -572,13 +606,13 @@ function cliCommandPut(args, context, onComplete){
 
 function cliCommandHelp(args, context, onComplete){
 
-    var result = 'Available commands: \n';
+    var lines = ['Available commands:'];
 
-    Object.keys(cliCommands).sort().forEach(function(item){
-        result = result + '\t' + cliCommands[item].name + ": " + cliCommands[item].description + "\n";
+    Object.keys(cli.cliCommands).sort().forEach(function(item){
+        lines.push('\t' + cli.cliCommands[item].name + ": " + cli.cliCommands[item].description);
     });
 
-    onComplete(context, result)
+    onComplete(context, lines.join('\n'))
 }
 
 function cliCommandNotFound(args, context, onComplete){
@@ -674,23 +708,25 @@ function callC3Api(context, uri, method, headers, callback, failureCallback, dat
 
     headers['Accept'] = 'application/json';
 
-    if(context.c3Domain != null){
-        headers['x-c3-domain'] = context.c3Domain
+    var state = context.cli.state;
+
+    if(state.c3Domain != null){
+        headers['x-c3-domain'] = state.c3Domain
     }
 
-    if(context.c3Key != null){
+    if(state.c3Key != null){
         var date = (new Date()).toUTCString();
         headers['x-c3-date'] = date;
 
-        var hashBase = uri.split("?")[0] + date + context.c3Domain;
+        var hashBase = uri.split("?")[0] + date + state.c3Domain;
 
         //console.log(hashBase);
-        headers['x-c3-sign'] = CryptoJS.HmacSHA256(hashBase, context.c3Key).toString(CryptoJS.enc.Hex);
+        headers['x-c3-sign'] = CryptoJS.HmacSHA256(hashBase, state.c3Key).toString(CryptoJS.enc.Hex);
 
         //console.log(headers['x-c3-sign'])
     }
 
-    $.ajax('http://' + context.c3Host + uri, {
+    $.ajax('http://' + state.c3Host + uri, {
         accepts: 'application/json',
         cache: false,
         headers: headers,

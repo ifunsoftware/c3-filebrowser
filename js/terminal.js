@@ -9,20 +9,17 @@ var Terminal = {
     currentPrompt: null,
     currentCommand: null,
 
-    c3Host: null,
-    c3Domain: null,
-    c3Key: null,
-    c3CurrentDir: "/",
-    c3CurrentDirName: "/",
+    cli: null,
 
-    initialize: function(container) {
+    initialize: function(container, cli) {
 
         this.container = container;
+        this.cli = cli;
 
         this.terminalInput = this.container.find('.terminal-input');
 
         var promptSpan = $('<span class="prompt"></span>');
-        promptSpan.append(this.promptString());
+        promptSpan.append(cli.prompt(this));
 
         this.currentPrompt = $('<div></div>');
         this.currentPrompt.append(promptSpan);
@@ -44,8 +41,11 @@ var Terminal = {
             this.keydown(event);
         }.bind(this));
 
-        this.out('Welcome to C3 file browser');
-        this.out('Type help to get list of available commands');
+
+        cli.welcomeMessages.forEach(function(message){
+           this.out(message);
+        }.bind(this));
+
         this.prompt();
     },
 
@@ -182,17 +182,9 @@ var Terminal = {
 
     // Displays the prompt for command input
     prompt: function() {
-        this.currentPrompt.find('.prompt').empty().append(this.promptString());
+        this.currentPrompt.find('.prompt').empty().append(cli.prompt(this));
         this.currentPrompt.find('.command').empty();
         window.scrollTo(0, this.currentPrompt.position().top);
-    },
-
-    promptString: function(){
-        if(this.c3Host == null){
-            return ":: ";
-        }else{
-            return this.c3Host + "::" + this.c3CurrentDirName + ": ";
-        }
     },
 
     storeCurrentCommand: function(){
@@ -226,7 +218,7 @@ var Terminal = {
 
     executeCommand: function(cliCommand, context, onComplete) {
         try{
-            cliExecuteCommand(cliCommand, context, onComplete);
+            cli.execute(cliCommand, context, onComplete);
         }catch(e){
             console.log(e);
             onComplete(context, 'Unexpected exception during command execution: ' + e)
@@ -256,4 +248,3 @@ var Terminal = {
     }
 };
 
-$(window).terminal = Terminal.initialize($('#terminal'));
