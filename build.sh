@@ -2,14 +2,9 @@
 #
 # Purpose: Pack a Chromium extension directory into crx format
 
-if test $# -ne 2; then
-  echo "Usage: crxmake.sh <extension dir> <pem path>"
-  exit 1
-fi
-
-dir=$1
-key=$2
-name=$(basename "$dir")
+dir=src
+key="cert.crt"
+name="c3-filebrowser"
 crx="$name.crx"
 pub="$name.pub"
 sig="$name.sig"
