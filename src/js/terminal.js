@@ -119,8 +119,24 @@ var Terminal = {
                 this.currentCommand.empty().append(this.commandHistory[this.commandHistoryIndex]);
                 // This can overflow the array by 1, which will clear the command line
             }
+            return;
         }
 
+        if(event.keyCode == 9){ //Tab key
+            event.preventDefault();
+
+            cli.autocomplete(this, this.currentCommand.text(), function(prefix, options){
+//                console.log('Autocomplete prefix: ' + prefix);
+//                console.log('Autocomplete options: ' + options);
+
+                if(options.length > 1){
+                    this.storeCurrentCommand();
+                    this.out(options.join("\n"));
+                }else if(options.length == 1){
+                    this.currentCommand.empty().append(prefix + options[0]);
+                }
+            }.bind(this));
+        }
     },
 
     keypress: function(event) {

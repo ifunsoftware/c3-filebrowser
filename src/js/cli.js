@@ -29,8 +29,78 @@ var cli = {
         c3CurrentDirName: "/"
     },
 
+    autocomplete: function(context, command, callback){
+
+        if(command.indexOf(' ') < 0){
+            var options = [];
+
+            Object.keys(this.cliCommands).forEach(function(cmd){
+                if(cmd.indexOf(command) == 0){
+                    options.push(cmd);
+                }
+            });
+
+            callback('', options);
+        }else{
+
+            if(this.state.c3Host != null){
+
+                var commandArray = cliBreakCommandLineWithEscape(command);
+
+                var partialFilePath = commandArray.pop();
+                var partialFileName = null;
+                var parentDir = null;
+                var prefix = null;
+
+                if(partialFilePath == '/'){
+                    partialFileName = '';
+                    parentDir = '/';
+                    prefix = commandArray.join(' ') + ' ' + parentDir;
+                }else{
+                    var partialFileComponents = partialFilePath.split('/');
+
+                    partialFileName = partialFileComponents.pop();
+
+                    parentDir = partialFileComponents.join("/") + '/';
+
+                    prefix = commandArray.join(' ') + ' ';
+
+                    if(parentDir == '/' && this.state.c3CurrentDir != '/'){
+                        prefix = prefix + parentDir;
+                    }else if(parentDir != '/'){
+                        prefix = prefix + parentDir;
+                    }
+                }
+//
+//                console.log("File name part " + partialFileName);
+//
+//                console.log("Parent dir: " + parentDir);
+//
+//                console.log('Partial file name "' + partialFilePath + '"');
+
+                cliListFiles(context, parentDir, function(files){
+//                    console.log(files);
+
+                    var options = [];
+
+                    files.forEach(function(file){
+                        if(file.toString().indexOf(partialFileName) == 0){
+                            options.push(file);
+                        }
+                    });
+
+                    callback(prefix, options);
+
+                });
+            }else{
+                callback('', []);
+            }
+        }
+    },
+
     execute: function(command, context, onComplete){
-        var commandArray = command.split(" ");
+
+        var commandArray = cliBreakCommandLineWithEscape(command);
 
         var commandName = commandArray[0];
         var commandArgs = commandArray.slice(1);
@@ -151,6 +221,18 @@ cli.cliCommands['put'] = {
     name: 'put',
     description: 'Uploads file to c3 system'
 };
+
+function cliBreakCommandLineWithEscape(command){
+    command = command.replace("\\ ", "\\_");
+
+    var commandArray = [];
+
+    command.split(" ").forEach(function(part){
+        commandArray.push(part.replace("\\_", " "));
+    });
+
+    return commandArray;
+}
 
 
 function cliCommandConnect(args, context, onComplete){
@@ -316,11 +398,16 @@ function buildFiles(response){
         file['name'] = node['name'];
         file['directory'] = !node['leaf'];
 
-        var metadata = node['metadata']['element'];
+        if(node.hasOwnProperty('metadata')){
 
-        metadata.forEach(function(entry){
-            file[translateKey(entry['@key'])] = entry['value'];
-        });
+            var metadata = node['metadata']['element'];
+
+            if(metadata){
+                metadata.forEach(function(entry){
+                    file[translateKey(entry['@key'])] = entry['value'];
+                });
+            }
+        }
 
         if(!file.hasOwnProperty('modified')){
             file['modified'] = file['created'];
@@ -375,6 +462,31 @@ function cliCommandLs(args, context, onComplete){
                 "%s %9s %s %s %2d %s"));
         }, function(code){
             onComplete(context, 'Failed to execute call, error code is ' + code)
+        });
+    });
+}
+
+function cliListFiles(context, dir, callback){
+    var path = cliEvaluatePath(context, [dir]);
+
+    cliCheckIfDirectoryExists(context, path, function(context, text){
+        callback([]);
+    }, function(address){
+
+        callC3Api(context, '/rest/fs' + path, 'get', {}, function(response){
+
+            var files = buildFiles(response);
+
+            var fileNames = [];
+
+            files.forEach(function(file){
+                fileNames.push(file['name']);
+            });
+
+            callback(fileNames);
+
+        }, function(code){
+            callback([]);
         });
     });
 }
