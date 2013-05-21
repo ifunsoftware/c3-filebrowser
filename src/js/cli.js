@@ -222,6 +222,12 @@ cli.cliCommands['put'] = {
     description: 'Uploads file to c3 system'
 };
 
+cli.cliCommands['search'] = {
+    func: cliCommandSearch,
+    name: 'search',
+    description: 'search for resources in c3 system'
+}
+
 function cliBreakCommandLineWithEscape(command){
     command = command.replace("\\ ", "\\_");
 
@@ -783,6 +789,45 @@ function cliCommandFile(args, context, onComplete){
             onComplete(context, 'Failed to execute call, error is ' + error)
         }
     );
+}
+
+function cliCommandSearch(args, context, onComplete){
+    if(args.length < 1){
+        onComplete(context, 'Not enough arguments')
+        return;
+    }
+
+    var query = args[0];
+
+
+    callC3Api(context, '/rest/search/' + query, 'GET', {},
+        function(response){
+            console.log(response);
+
+            var output = [];
+
+            output.push('Query: ');
+            response['query'].split(' ').forEach(function(entry){
+               output.push('\t' + entry);
+            });
+
+            output.push('Results: ');
+
+            var results = response['searchResults']['entry'];
+
+            results.forEach(function(result){
+                output.push(result['address']);
+                output.push('\tPath: ' + result['path']);
+                output.push('\tScore: ' + result['score']);
+            });
+
+
+            onComplete(context, output.join('\n'));
+        },
+        function(error){
+            onComplete(context, 'Failed to execute query: ' + error)
+        }
+    )
 }
 
 function cliProcessCollection(collection, func){
