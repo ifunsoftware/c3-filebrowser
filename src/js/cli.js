@@ -128,6 +128,19 @@ var cli = {
         }
     },
 
+    title: function(){
+
+        var baseTitle = "C3 File Browser";
+
+        if(this.state.c3Host == null){
+            return baseTitle;
+        }else if(this.state.c3Domain == null){
+            return baseTitle + " - " + this.state.c3Host;
+        }else {
+            return baseTitle + " - " + this.state.c3Domain + "@" + this.state.c3Host;
+        }
+    },
+
     cliFindCommand: function(name){
 
         if(name in this.cliCommands){
@@ -806,23 +819,18 @@ function cliCommandSearch(args, context, onComplete){
 
             var output = [];
 
-            output.push('Query: ');
-            response['query'].split(' ').forEach(function(entry){
-               output.push('\t' + entry);
-            });
+            chrome.app.window.create('search.html', {
+                    'width': 800,
+                    'height': 600
+                }, function(embedWindow){
 
-            output.push('Results: ');
-
-            var results = response['searchResults']['entry'];
-
-            results.forEach(function(result){
-                output.push(result['address']);
-                output.push('\tPath: ' + result['path']);
-                output.push('\tScore: ' + result['score']);
-            });
-
-
-            onComplete(context, output.join('\n'));
+                    embedWindow.contentWindow.onload = function(){
+                        var evaluator = embedWindow.contentWindow['displaySearchResults'];
+                        evaluator(response);
+                    };
+                    onComplete(context, '');
+                }
+            );
         },
         function(error){
             onComplete(context, 'Failed to execute query: ' + error)

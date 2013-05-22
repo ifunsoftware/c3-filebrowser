@@ -191,6 +191,10 @@ var Terminal = {
             }
 
             var numberOfLines = textToAppend.split("\n").length - 1;
+
+//            console.log("Current number: " + currentLines);
+//            console.log("New number: " + numberOfLines);
+
             terminalOutput.attr('rows', currentLines + numberOfLines);
             terminalOutput.append(textToAppend);
         }
@@ -229,6 +233,7 @@ var Terminal = {
 
             context.prompt();
             terminalInput.css('visibility', 'visible');
+            document.title = cli.title();
         })
     },
 
