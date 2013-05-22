@@ -4,8 +4,8 @@ function displaySearchResults(response){
     var block = $('#search_results');
 
     block.append($('<h3>Query</h3>'));
-    block.append($('<p>' + response['query'] + '</p>'))
-    block.append($('<h3>Results</h3>'))
+    block.append($('<p>' + response['query'] + '</p>'));
+    block.append($('<h3>Results</h3>'));
 
     var results = response['searchResults']['entry'];
 
@@ -39,6 +39,50 @@ function displaySearchResults(response){
                 block.append(paragraph);
             })
         });
+
+        var plainText = $('#search_results_plain');
+        plainText.append('Query\n');
+        plainText.append(response['query'] + '\n\n');
+
+        results = response['searchResults']['entry'];
+
+        if(results){
+            results.forEach(function(result){
+                plainText.append(result['path']);
+                plainText.append('-');
+                plainText.append(result['address']);
+                plainText.append('\n');
+
+                var fragments = result['fragments']['fragment'];
+
+                fragments.forEach(function(fragment){
+
+                    plainText.append('Found in ' + fragment['field'] + ':\n');
+                    var strings = fragment['foundStrings']['string'];
+
+                    strings.forEach(function(str){
+                        plainText.append(str);
+                        plainText.append('\n');
+                    });
+                })
+
+            });
+        }
     }
 
+    chrome.contextMenus.removeAll();
+    chrome.contextMenus.create({
+        'title': 'Copy All',
+        'id': 'copyItem'
+    });
+
+    chrome.contextMenus.onClicked.addListener(function(info, tab) {
+        var textArea = $('#search_results_plain');
+
+        textArea.css('visibility', 'visible');
+        textArea.focus();
+        textArea.select();
+        document.execCommand("Copy");
+        textArea.css('visibility', 'hidden');
+    });
 }

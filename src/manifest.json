@@ -6,9 +6,11 @@
     "permissions": [
         "http://*/",
         "clipboardRead",
+        "clipboardWrite",
         "fileSystem",
         "webview",
-        "storage"
+        "storage",
+        "contextMenus"
     ],
     "app": {
         "background": {
